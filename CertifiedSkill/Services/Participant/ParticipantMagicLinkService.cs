@@ -28,7 +28,7 @@ namespace CertifiedSkill.Services.Participant
 
             if (await IsRateLimitedAsync(normalizedEmail, now, cancellationToken))
             {
-                logger.LogWarning("Magic link request rate-limited for email hash {EmailHash}", HashEmail(normalizedEmail));
+                logger.LogWarning("Magic link request rate-limited");
                 return MagicLinkRequestResult.RateLimited;
             }
 
@@ -50,7 +50,7 @@ namespace CertifiedSkill.Services.Participant
 
             await emailSender.SendMagicLinkAsync(normalizedEmail, magicLink, cancellationToken);
 
-            logger.LogInformation("Magic link sent to email hash {EmailHash}", HashEmail(normalizedEmail));
+            logger.LogInformation("Magic link sent");
             return MagicLinkRequestResult.Sent;
         }
 
@@ -97,7 +97,7 @@ namespace CertifiedSkill.Services.Participant
             record.MarkUsed(now);
             await db.SaveChangesAsync(cancellationToken);
 
-            logger.LogInformation("Magic link consumed for email hash {EmailHash}", HashEmail(record.Email));
+            logger.LogInformation("Magic link consumed successfully");
             return (MagicLinkConsumeResult.Success, record.Email);
         }
 
@@ -125,12 +125,6 @@ namespace CertifiedSkill.Services.Participant
         {
             var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(rawToken));
             return Convert.ToBase64String(bytes);
-        }
-
-        private static string HashEmail(string normalizedEmail)
-        {
-            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(normalizedEmail));
-            return Convert.ToBase64String(bytes)[..8];
         }
 
         private static string NormalizeEmail(string email) =>

@@ -9,10 +9,7 @@ namespace CertifiedSkill.Services.Participant
     {
         public Task SendMagicLinkAsync(string email, string magicLinkUrl, CancellationToken cancellationToken = default)
         {
-            logger.LogInformation(
-                "NOOP: Sending magic link to {Email}. Link: {MagicLinkUrl}",
-                email,
-                magicLinkUrl);
+            logger.LogInformation("NOOP: Sending magic link (link omitted from log)");
 
             return Task.CompletedTask;
         }

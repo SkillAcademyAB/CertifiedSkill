@@ -46,15 +46,15 @@ namespace CertifiedSkill.Data.Protection
             string keyType,
             ICollection<string> failures)
         {
-            if (string.IsNullOrWhiteSpace(activeVersion))
-            {
-                failures.Add($"PnrProtection requires an active {keyType} key version when enabled.");
-                return;
-            }
-
             if (keys.Count == 0)
             {
                 failures.Add($"PnrProtection requires at least one configured {keyType} key when enabled.");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(activeVersion))
+            {
+                failures.Add($"PnrProtection requires an active {keyType} key version when enabled.");
                 return;
             }
 

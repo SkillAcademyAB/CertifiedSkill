@@ -50,7 +50,10 @@ namespace CertifiedSkill.Tests
         public void Validate_ShouldRejectEnabledProtection_WhenKeyMaterialIsNotBase64()
         {
             var options = CreateValidOptions();
-            options.EncryptionKeys["2026-04"] = "not-base64";
+            options.EncryptionKeysConfiguration = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["2026-04"] = "not-base64"
+            };
 
             var result = validator.Validate(Options.DefaultName, options);
 
@@ -63,7 +66,10 @@ namespace CertifiedSkill.Tests
         public void Validate_ShouldRejectEnabledProtection_WhenKeyMaterialIsTooShort()
         {
             var options = CreateValidOptions();
-            options.HashKeys["2026-04"] = Convert.ToBase64String("too-short-secret"u8.ToArray());
+            options.HashKeysConfiguration = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["2026-04"] = Convert.ToBase64String("too-short-secret"u8.ToArray())
+            };
 
             var result = validator.Validate(Options.DefaultName, options);
 
@@ -91,11 +97,11 @@ namespace CertifiedSkill.Tests
                 Enabled = true,
                 ActiveEncryptionKeyVersion = "2026-04",
                 ActiveHashKeyVersion = "2026-04",
-                EncryptionKeys = new Dictionary<string, string>(StringComparer.Ordinal)
+                EncryptionKeysConfiguration = new Dictionary<string, string>(StringComparer.Ordinal)
                 {
                     ["2026-04"] = keyMaterial
                 },
-                HashKeys = new Dictionary<string, string>(StringComparer.Ordinal)
+                HashKeysConfiguration = new Dictionary<string, string>(StringComparer.Ordinal)
                 {
                     ["2026-04"] = keyMaterial
                 }

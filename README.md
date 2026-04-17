@@ -52,6 +52,8 @@ Spårbart samtycke kopplat till Person. Samtycket ska kunna versioneras, registr
 - Krypteringsnycklar och hash-relaterade hemligheter ska hanteras separat från applikationskonfiguration
 - Loggar, exportflöden och UI ska utformas så att PNR inte läcker
 
+Se även `docs/security/pnr-key-management.md` för miljöregler, rotation, fallback och spårbarhet kring PNR-nycklar.
+
 ## Nästa steg
 
 - Påbörja implementation i rekommenderad ordning

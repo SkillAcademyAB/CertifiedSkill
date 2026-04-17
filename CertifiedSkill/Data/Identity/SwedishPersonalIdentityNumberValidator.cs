@@ -4,6 +4,8 @@ namespace CertifiedSkill.Data.Identity
 {
     public sealed class SwedishPersonalIdentityNumberValidator : IPersonalIdentityNumberValidator
     {
+        private const int NormalizedLength = 10;
+
         public PersonalIdentityNumberValidationResult Validate(string? input)
         {
             if (string.IsNullOrWhiteSpace(input))
@@ -17,14 +19,7 @@ namespace CertifiedSkill.Data.Identity
                 return PersonalIdentityNumberValidationResult.Failure(PersonalIdentityNumberValidationError.InvalidFormat);
             }
 
-            var normalized = digitSequence.Length switch
-            {
-                10 => digitSequence,
-                12 => digitSequence[2..],
-                _ => null
-            };
-
-            if (normalized is null)
+            if (!TryNormalizeToInternalFormat(digitSequence, out var normalized))
             {
                 return PersonalIdentityNumberValidationResult.Failure(PersonalIdentityNumberValidationError.InvalidFormat);
             }
@@ -53,50 +48,52 @@ namespace CertifiedSkill.Data.Identity
         {
             digits = string.Empty;
 
-            if (input.Length == 11)
+            if (input.Length == 10 && IsDigitsOnly(input))
             {
-                if (!IsSeparator(input[6]))
-                {
-                    return false;
-                }
-
-                var left = input[..6];
-                var right = input[7..];
-                if (!IsDigitsOnly(left) || !IsDigitsOnly(right) || right.Length != 4)
-                {
-                    return false;
-                }
-
-                digits = left + right;
-                return true;
-            }
-
-            if (input.Length == 13)
-            {
-                if (!IsSeparator(input[8]))
-                {
-                    return false;
-                }
-
-                var left = input[..8];
-                var right = input[9..];
-                if (!IsDigitsOnly(left) || !IsDigitsOnly(right) || right.Length != 4)
-                {
-                    return false;
-                }
-
-                digits = left + right;
-                return true;
-            }
-
-            if (input.Length == 10 || input.Length == 12)
-            {
-                if (!IsDigitsOnly(input))
-                {
-                    return false;
-                }
-
                 digits = input;
+                return true;
+            }
+
+            if (input.Length == 11
+                && IsDigitsOnly(input[..6])
+                && IsSeparator(input[6])
+                && IsDigitsOnly(input[7..]))
+            {
+                digits = input[..6] + input[7..];
+                return true;
+            }
+
+            if (input.Length == 12 && IsDigitsOnly(input))
+            {
+                digits = input;
+                return true;
+            }
+
+            if (input.Length == 13
+                && IsDigitsOnly(input[..8])
+                && IsSeparator(input[8])
+                && IsDigitsOnly(input[9..]))
+            {
+                digits = input[..8] + input[9..];
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool TryNormalizeToInternalFormat(string digitSequence, out string normalized)
+        {
+            normalized = string.Empty;
+
+            if (digitSequence.Length == NormalizedLength)
+            {
+                normalized = digitSequence;
+                return true;
+            }
+
+            if (digitSequence.Length == 12)
+            {
+                normalized = digitSequence[2..];
                 return true;
             }
 
@@ -110,7 +107,7 @@ namespace CertifiedSkill.Data.Identity
                 return DateOnly.TryParseExact(digitSequence[..8], "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _);
             }
 
-            if (digitSequence.Length == 10)
+            if (digitSequence.Length == NormalizedLength)
             {
                 var shortDate = digitSequence[..6];
                 var year = int.Parse(shortDate[..2], CultureInfo.InvariantCulture);

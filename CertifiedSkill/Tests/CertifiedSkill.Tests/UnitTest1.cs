@@ -14,6 +14,9 @@ public class SwedishPersonalIdentityNumberValidatorTests
     [InlineData("199001010017", "9001010017")]
     [InlineData("  19900101-0017  ", "9001010017")]
     [InlineData("000229-1235", "0002291235")]
+    [InlineData("20000229-1235", "0002291235")]
+    [InlineData("20000229+1235", "0002291235")]
+    [InlineData("200002291235", "0002291235")]
     public void Validate_ShouldAccept_ValidFormatsAndChecksums(string input, string expectedNormalized)
     {
         var result = validator.Validate(input);
@@ -30,6 +33,8 @@ public class SwedishPersonalIdentityNumberValidatorTests
     [InlineData("900101-0018", PersonalIdentityNumberValidationError.InvalidChecksum)]
     [InlineData("900132-0017", PersonalIdentityNumberValidationError.InvalidDate)]
     [InlineData("900100-0017", PersonalIdentityNumberValidationError.InvalidDate)]
+    [InlineData("19000229-1235", PersonalIdentityNumberValidationError.InvalidDate)]
+    [InlineData("010229-1235", PersonalIdentityNumberValidationError.InvalidDate)]
     [InlineData("19900101-0018", PersonalIdentityNumberValidationError.InvalidChecksum)]
     [InlineData("19901301-0017", PersonalIdentityNumberValidationError.InvalidDate)]
     [InlineData("19900101-001", PersonalIdentityNumberValidationError.InvalidFormat)]
@@ -37,6 +42,7 @@ public class SwedishPersonalIdentityNumberValidatorTests
     [InlineData("19900101/0017", PersonalIdentityNumberValidationError.InvalidFormat)]
     [InlineData("900101A017", PersonalIdentityNumberValidationError.InvalidFormat)]
     [InlineData("90010100178", PersonalIdentityNumberValidationError.InvalidFormat)]
+    [InlineData("90-01010017", PersonalIdentityNumberValidationError.InvalidFormat)]
     public void Validate_ShouldReject_InvalidInput(string? input, PersonalIdentityNumberValidationError expectedError)
     {
         var result = validator.Validate(input);
@@ -44,6 +50,18 @@ public class SwedishPersonalIdentityNumberValidatorTests
         Assert.False(result.IsValid);
         Assert.Null(result.NormalizedValue);
         Assert.Equal(expectedError, result.Error);
+    }
+
+    [Fact]
+    public void Validate_ShouldReturnTenDigitInternalNormalizedFormat()
+    {
+        var result = validator.Validate("20000229-1235");
+
+        Assert.True(result.IsValid);
+        Assert.NotNull(result.NormalizedValue);
+        Assert.Equal(10, result.NormalizedValue!.Length);
+        Assert.DoesNotContain('-', result.NormalizedValue);
+        Assert.DoesNotContain('+', result.NormalizedValue);
     }
 
     [Fact]

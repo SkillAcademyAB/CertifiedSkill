@@ -7,16 +7,16 @@ namespace CertifiedSkill.Tests
         private readonly SwedishPersonalIdentityNumberValidator validator = new();
 
         [Theory]
-        [InlineData("900101-0017", "9001010017")]
-        [InlineData("900101+0017", "9001010017")]
-        [InlineData("9001010017", "9001010017")]
-        [InlineData("19900101-0017", "9001010017")]
-        [InlineData("199001010017", "9001010017")]
-        [InlineData("  19900101-0017  ", "9001010017")]
-        [InlineData("000229-1235", "0002291235")]
-        [InlineData("20000229-1235", "0002291235")]
-        [InlineData("20000229+1235", "0002291235")]
-        [InlineData("200002291235", "0002291235")]
+        [InlineData("900101-0017", "199001010017")]
+        [InlineData("900101+0017", "189001010017")]
+        [InlineData("9001010017", "199001010017")]
+        [InlineData("19900101-0017", "199001010017")]
+        [InlineData("199001010017", "199001010017")]
+        [InlineData("  19900101-0017  ", "199001010017")]
+        [InlineData("000229-1235", "200002291235")]
+        [InlineData("20000229-1235", "200002291235")]
+        [InlineData("20000229+1235", "200002291235")]
+        [InlineData("200002291235", "200002291235")]
         public void Validate_ShouldAccept_ValidFormatsAndChecksums(string input, string expectedNormalized)
         {
             var result = validator.Validate(input);
@@ -53,13 +53,13 @@ namespace CertifiedSkill.Tests
         }
 
         [Fact]
-        public void Validate_ShouldReturnTenDigitInternalNormalizedFormat()
+        public void Validate_ShouldReturnTwelveDigitCanonicalNormalizedFormat()
         {
             var result = validator.Validate("20000229-1235");
 
             Assert.True(result.IsValid);
             Assert.NotNull(result.NormalizedValue);
-            Assert.Equal(10, result.NormalizedValue!.Length);
+            Assert.Equal(12, result.NormalizedValue!.Length);
             Assert.DoesNotContain('-', result.NormalizedValue);
             Assert.DoesNotContain('+', result.NormalizedValue);
         }
@@ -74,12 +74,12 @@ namespace CertifiedSkill.Tests
         }
 
         [Fact]
-        public void TryNormalize_ShouldReturnNormalizedTenDigitValue_ForValidInput()
+        public void TryNormalize_ShouldReturnNormalizedCanonicalValue_ForValidInput()
         {
             var isValid = validator.TryNormalize("19900101-0017", out var normalized);
 
             Assert.True(isValid);
-            Assert.Equal("9001010017", normalized);
+            Assert.Equal("199001010017", normalized);
         }
     }
 }

@@ -4,7 +4,8 @@ namespace CertifiedSkill.Data.Identity
 {
     public sealed class SwedishPersonalIdentityNumberValidator : IPersonalIdentityNumberValidator
     {
-        private const int NormalizedLength = 10;
+        private const int CanonicalLength = 12;
+        private const int ChecksumLength = 10;
 
         public PersonalIdentityNumberValidationResult Validate(string? input)
         {
@@ -14,21 +15,17 @@ namespace CertifiedSkill.Data.Identity
             }
 
             var trimmed = input.Trim();
-            if (!TryExtractDigits(trimmed, out var digitSequence))
+            if (!TryExtractDigits(trimmed, out var digitSequence, out var separator))
             {
                 return PersonalIdentityNumberValidationResult.Failure(PersonalIdentityNumberValidationError.InvalidFormat);
             }
 
-            var normalized = digitSequence.Length == NormalizedLength
-                ? digitSequence
-                : digitSequence[^NormalizedLength..];
-
-            if (!IsValidDatePart(digitSequence))
+            if (!TryNormalizeToCanonicalFormat(digitSequence, separator, out var normalized))
             {
                 return PersonalIdentityNumberValidationResult.Failure(PersonalIdentityNumberValidationError.InvalidDate);
             }
 
-            if (!HasValidChecksum(normalized))
+            if (!HasValidChecksum(normalized[^ChecksumLength..]))
             {
                 return PersonalIdentityNumberValidationResult.Failure(PersonalIdentityNumberValidationError.InvalidChecksum);
             }
@@ -43,11 +40,12 @@ namespace CertifiedSkill.Data.Identity
             return result.IsValid;
         }
 
-        private static bool TryExtractDigits(string input, out string digits)
+        private static bool TryExtractDigits(string input, out string digits, out char? separator)
         {
             digits = string.Empty;
+            separator = null;
 
-            if (input.Length == 10 && IsDigitsOnly(input))
+            if (input.Length == ChecksumLength && IsDigitsOnly(input))
             {
                 digits = input;
                 return true;
@@ -59,10 +57,11 @@ namespace CertifiedSkill.Data.Identity
                 && IsDigitsOnly(input[7..]))
             {
                 digits = input[..6] + input[7..];
+                separator = input[6];
                 return true;
             }
 
-            if (input.Length == 12 && IsDigitsOnly(input))
+            if (input.Length == CanonicalLength && IsDigitsOnly(input))
             {
                 digits = input;
                 return true;
@@ -74,51 +73,74 @@ namespace CertifiedSkill.Data.Identity
                 && IsDigitsOnly(input[9..]))
             {
                 digits = input[..8] + input[9..];
+                separator = input[8];
                 return true;
             }
 
             return false;
         }
 
-        private static bool TryNormalizeToInternalFormat(string digitSequence, out string normalized)
+        private static bool TryNormalizeToCanonicalFormat(string digitSequence, char? separator, out string normalized)
         {
             normalized = string.Empty;
 
-            if (digitSequence.Length == NormalizedLength)
+            if (digitSequence.Length == CanonicalLength)
             {
+                if (!IsValidDatePart(digitSequence[..8]))
+                {
+                    return false;
+                }
+
                 normalized = digitSequence;
                 return true;
             }
 
-            if (digitSequence.Length == 12)
+            if (digitSequence.Length == ChecksumLength)
             {
-                normalized = digitSequence[2..];
+                var century = ResolveCenturyPrefix(digitSequence[..6], separator);
+                var candidate = $"{century}{digitSequence}";
+                if (!IsValidDatePart(candidate[..8]))
+                {
+                    return false;
+                }
+
+                normalized = candidate;
                 return true;
             }
 
             return false;
         }
 
-        private static bool IsValidDatePart(string digitSequence)
+        private static string ResolveCenturyPrefix(string shortDatePart, char? separator)
         {
-            if (digitSequence.Length == 12)
+            var currentDate = DateOnly.FromDateTime(DateTime.UtcNow);
+            var yearPart = int.Parse(shortDatePart[..2], CultureInfo.InvariantCulture);
+
+            if (separator == '+')
             {
-                return DateOnly.TryParseExact(digitSequence[..8], "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _);
+                var maxYearForPlus = currentDate.Year - 100;
+                var century = currentDate.Year / 100 - 1;
+                var fullYear = century * 100 + yearPart;
+                if (fullYear > maxYearForPlus)
+                {
+                    fullYear -= 100;
+                }
+
+                return (fullYear / 100).ToString("00", CultureInfo.InvariantCulture);
             }
 
-            if (digitSequence.Length == NormalizedLength)
+            var currentCentury = currentDate.Year / 100;
+            var guessedFullYear = currentCentury * 100 + yearPart;
+            if (guessedFullYear > currentDate.Year)
             {
-                var shortDate = digitSequence[..6];
-                var year = int.Parse(shortDate[..2], CultureInfo.InvariantCulture);
-                var month = int.Parse(shortDate.Substring(2, 2), CultureInfo.InvariantCulture);
-                var day = int.Parse(shortDate.Substring(4, 2), CultureInfo.InvariantCulture);
-
-                return DateOnly.TryParseExact($"19{year:00}{month:00}{day:00}", "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _)
-                    || DateOnly.TryParseExact($"20{year:00}{month:00}{day:00}", "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _);
+                guessedFullYear -= 100;
             }
 
-            return false;
+            return (guessedFullYear / 100).ToString("00", CultureInfo.InvariantCulture);
         }
+
+        private static bool IsValidDatePart(string datePart) =>
+            DateOnly.TryParseExact(datePart, "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _);
 
         private static bool HasValidChecksum(string normalizedTenDigits)
         {

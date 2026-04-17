@@ -1,9 +1,11 @@
 using CertifiedSkill.Components;
 using CertifiedSkill.Components.Account;
 using CertifiedSkill.Data;
+using CertifiedSkill.Data.Protection;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace CertifiedSkill
 {
@@ -32,6 +34,10 @@ namespace CertifiedSkill
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(connectionString));
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
+            builder.Services.AddSingleton<IValidateOptions<PnrProtectionOptions>, PnrProtectionOptionsValidator>();
+            builder.Services.AddOptions<PnrProtectionOptions>()
+                .Bind(builder.Configuration.GetSection(PnrProtectionOptions.SectionName))
+                .ValidateOnStart();
 
             builder.Services.AddIdentityCore<ApplicationUser>(options =>
                 {

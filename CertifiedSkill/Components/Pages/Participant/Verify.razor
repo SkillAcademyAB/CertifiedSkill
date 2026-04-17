@@ -1,0 +1,89 @@
+@page "/participant/login/verify"
+@using CertifiedSkill.Services.Participant
+@using Microsoft.AspNetCore.Authentication
+@inject IParticipantMagicLinkService MagicLinkService
+@inject NavigationManager Navigation
+@inject ILogger<Verify> Logger
+
+<PageTitle>Loggar in – Deltagare</PageTitle>
+
+@if (state == VerifyState.Verifying)
+{
+    <div class="d-flex justify-content-center align-items-center" style="min-height: 40vh;">
+        <div class="text-center">
+            <div class="spinner-border" role="status" aria-hidden="true"></div>
+            <p class="mt-3">Verifierar inloggningslänk&hellip;</p>
+        </div>
+    </div>
+}
+else if (state == VerifyState.Invalid)
+{
+    <div class="row justify-content-center">
+        <div class="col-md-5 text-center">
+            <h1>Ogiltig länk</h1>
+            <p>Inloggningslänken är ogiltig, har redan använts eller har gått ut.</p>
+            <a href="/participant/login" class="btn btn-primary">Begär ny länk</a>
+        </div>
+    </div>
+}
+
+@code {
+    private enum VerifyState { Verifying, Invalid }
+
+    private VerifyState state = VerifyState.Verifying;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromQuery(Name = "token")]
+    private string? Token { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Token))
+        {
+            state = VerifyState.Invalid;
+            return;
+        }
+
+        var (result, email) = await MagicLinkService.ConsumeTokenAsync(Token);
+
+        if (result != MagicLinkConsumeResult.Success || email is null)
+        {
+            Logger.LogWarning("Magic link consume failed with result {Result}", result);
+            state = VerifyState.Invalid;
+            return;
+        }
+
+        await SignInParticipantAsync(email);
+        Navigation.NavigateTo("/participant/dashboard");
+    }
+
+    private async Task SignInParticipantAsync(string email)
+    {
+        var claims = new[]
+        {
+            new System.Security.Claims.Claim(
+                System.Security.Claims.ClaimTypes.Email,
+                email),
+            new System.Security.Claims.Claim(
+                System.Security.Claims.ClaimTypes.Name,
+                email)
+        };
+
+        var identity = new System.Security.Claims.ClaimsIdentity(
+            claims,
+            ParticipantAuthConstants.SchemeName);
+
+        var principal = new System.Security.Claims.ClaimsPrincipal(identity);
+
+        await HttpContext.SignInAsync(
+            ParticipantAuthConstants.SchemeName,
+            principal,
+            new AuthenticationProperties
+            {
+                IsPersistent = true,
+                ExpiresUtc = DateTimeOffset.UtcNow.AddDays(30)
+            });
+    }
+}

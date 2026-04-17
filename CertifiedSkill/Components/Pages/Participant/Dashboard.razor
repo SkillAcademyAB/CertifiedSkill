@@ -1,0 +1,108 @@
+@page "/participant/dashboard"
+@using System.Security.Claims
+@using CertifiedSkill.Data.Participant
+@using CertifiedSkill.Services.Participant
+@using Microsoft.AspNetCore.Authentication
+@inject ParticipantPersonService PersonService
+@inject NavigationManager Navigation
+
+<PageTitle>Mina certifikat</PageTitle>
+
+@if (!isAuthenticated)
+{
+    <div class="d-flex justify-content-center align-items-center" style="min-height: 40vh;">
+        <div class="spinner-border" role="status" aria-hidden="true"></div>
+    </div>
+}
+else
+{
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1>Mina certifikat</h1>
+                <form method="post" action="/participant/logout">
+                    <AntiforgeryToken />
+                    <button type="submit" class="btn btn-outline-secondary btn-sm">Logga ut</button>
+                </form>
+            </div>
+
+            @if (person is null)
+            {
+                <div class="alert alert-info" role="alert">
+                    <strong>Inget konto hittat.</strong>
+                    Ditt e-postkonto är inte kopplat till någon kursdeltagare ännu.
+                    Kontakta din utbildningsadministratör om du förväntar dig att ha certifikat.
+                </div>
+            }
+            else if (!activeCertificates.Any())
+            {
+                <div class="alert alert-secondary" role="alert">
+                    Du har inga certifikat ännu. Certifikat visas här när du genomfört en utbildning.
+                </div>
+            }
+            else
+            {
+                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                    @foreach (var cert in activeCertificates)
+                    {
+                        <div class="col">
+                            <div class="card h-100 shadow-sm">
+                                <div class="card-body">
+                                    <h5 class="card-title">@cert.CourseName</h5>
+                                    @if (!string.IsNullOrWhiteSpace(cert.CourseVersion))
+                                    {
+                                        <p class="card-text text-muted small">Version: @cert.CourseVersion</p>
+                                    }
+                                    <p class="card-text">
+                                        <span class="badge bg-success">Aktivt certifikat</span>
+                                    </p>
+                                    <p class="card-text">
+                                        <small class="text-muted">Utfärdat: @cert.IssuedAt.LocalDateTime.ToString("d MMMM yyyy")</small>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private bool isAuthenticated;
+    private Person? person;
+    private IReadOnlyList<Certificate> activeCertificates = [];
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authResult = await HttpContext.AuthenticateAsync(ParticipantAuthConstants.SchemeName);
+
+        if (!authResult.Succeeded)
+        {
+            Navigation.NavigateTo("/participant/login", forceLoad: true);
+            return;
+        }
+
+        isAuthenticated = true;
+
+        var email = authResult.Principal?.FindFirstValue(ClaimTypes.Email);
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return;
+        }
+
+        person = await PersonService.FindByEmailAsync(email);
+        if (person is not null)
+        {
+            activeCertificates = person.Certificates
+                .Where(c => c.Status == CertificateStatus.Active)
+                .OrderByDescending(c => c.IssuedAt)
+                .ToList();
+        }
+    }
+}
+

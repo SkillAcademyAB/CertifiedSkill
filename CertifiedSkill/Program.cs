@@ -2,6 +2,8 @@ using CertifiedSkill.Components;
 using CertifiedSkill.Components.Account;
 using CertifiedSkill.Data;
 using CertifiedSkill.Data.Protection;
+using CertifiedSkill.Services.Participant;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -23,12 +25,32 @@ namespace CertifiedSkill
             builder.Services.AddScoped<IdentityRedirectManager>();
             builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 
-            builder.Services.AddAuthentication(options =>
+            var authBuilder = builder.Services.AddAuthentication(options =>
                 {
                     options.DefaultScheme = IdentityConstants.ApplicationScheme;
                     options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
-                })
-                .AddIdentityCookies();
+                });
+
+            authBuilder.AddIdentityCookies();
+
+            authBuilder.AddCookie(ParticipantAuthConstants.SchemeName, options =>
+            {
+                options.Cookie.Name = "CertifiedSkill.Participant";
+                options.Cookie.HttpOnly = true;
+                options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                options.Cookie.SameSite = SameSiteMode.Lax;
+                options.LoginPath = "/participant/login";
+                options.AccessDeniedPath = "/participant/login";
+                options.ExpireTimeSpan = TimeSpan.FromDays(30);
+                options.SlidingExpiration = true;
+            });
+
+            builder.Services.AddAuthorization(options =>
+            {
+                options.AddPolicy(ParticipantAuthConstants.PolicyName, policy =>
+                    policy.AddAuthenticationSchemes(ParticipantAuthConstants.SchemeName)
+                          .RequireAuthenticatedUser());
+            });
 
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -49,6 +71,12 @@ namespace CertifiedSkill
                 .AddDefaultTokenProviders();
 
             builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
+
+            // Participant authentication services
+            builder.Services.AddSingleton(TimeProvider.System);
+            builder.Services.AddScoped<IParticipantMagicLinkService, ParticipantMagicLinkService>();
+            builder.Services.AddScoped<IParticipantEmailSender, NoOpParticipantEmailSender>();
+            builder.Services.AddScoped<ParticipantPersonService>();
 
             var app = builder.Build();
 
@@ -75,6 +103,13 @@ namespace CertifiedSkill
 
             // Add additional endpoints required by the Identity /Account Razor components.
             app.MapAdditionalIdentityEndpoints();
+
+            // Participant logout endpoint
+            app.MapPost("/participant/logout", async (HttpContext context) =>
+            {
+                await context.SignOutAsync(ParticipantAuthConstants.SchemeName);
+                return Results.LocalRedirect("/participant/login");
+            });
 
             app.Run();
         }

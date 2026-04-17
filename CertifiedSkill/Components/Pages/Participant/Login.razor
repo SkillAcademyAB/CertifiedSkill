@@ -1,0 +1,83 @@
+@page "/participant/login"
+@using System.ComponentModel.DataAnnotations
+@using CertifiedSkill.Components.Account.Shared
+@using CertifiedSkill.Services.Participant
+@inject IParticipantMagicLinkService MagicLinkService
+@inject NavigationManager Navigation
+@inject ILogger<Login> Logger
+
+<PageTitle>Logga in – Deltagare</PageTitle>
+
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <h1>Logga in som deltagare</h1>
+        <p class="text-muted">
+            Ange din e-postadress så skickar vi en inloggningslänk.
+            Länken är giltig i 15 minuter och kan endast användas en gång.
+        </p>
+
+        <StatusMessage Message="@statusMessage" />
+
+        <EditForm Model="Input" method="post" OnValidSubmit="RequestMagicLinkAsync" FormName="participant-login">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" role="alert" />
+
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Email"
+                           id="email"
+                           class="form-control"
+                           autocomplete="email"
+                           aria-required="true"
+                           placeholder="namn@example.com" />
+                <label for="email">E-postadress</label>
+                <ValidationMessage For="() => Input.Email" class="text-danger" />
+            </div>
+
+            <button type="submit" class="w-100 btn btn-lg btn-primary" disabled="@isBusy">
+                @if (isBusy)
+                {
+                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                }
+                Skicka inloggningslänk
+            </button>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private string? statusMessage;
+    private bool isBusy;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = default!;
+
+    private async Task RequestMagicLinkAsync()
+    {
+        Input ??= new();
+        isBusy = true;
+        statusMessage = null;
+
+        var baseUrl = Navigation.ToAbsoluteUri("/participant/login/verify").ToString();
+
+        var result = await MagicLinkService.RequestMagicLinkAsync(Input.Email, baseUrl);
+
+        isBusy = false;
+
+        if (result == MagicLinkRequestResult.RateLimited)
+        {
+            // Return the same success message to avoid leaking rate-limit state.
+            Logger.LogWarning("Rate limited magic link request");
+        }
+
+        // Always navigate to the confirmation page so we don't reveal
+        // whether the address is registered or rate-limited.
+        Navigation.NavigateTo("/participant/login/sent");
+    }
+
+    private sealed class InputModel
+    {
+        [Required(ErrorMessage = "E-postadress krävs.")]
+        [EmailAddress(ErrorMessage = "Ange en giltig e-postadress.")]
+        public string Email { get; set; } = string.Empty;
+    }
+}

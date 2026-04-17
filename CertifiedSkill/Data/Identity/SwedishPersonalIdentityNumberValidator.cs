@@ -19,10 +19,9 @@ namespace CertifiedSkill.Data.Identity
                 return PersonalIdentityNumberValidationResult.Failure(PersonalIdentityNumberValidationError.InvalidFormat);
             }
 
-            if (!TryNormalizeToInternalFormat(digitSequence, out var normalized))
-            {
-                return PersonalIdentityNumberValidationResult.Failure(PersonalIdentityNumberValidationError.InvalidFormat);
-            }
+            var normalized = digitSequence.Length == NormalizedLength
+                ? digitSequence
+                : digitSequence[^NormalizedLength..];
 
             if (!IsValidDatePart(digitSequence))
             {

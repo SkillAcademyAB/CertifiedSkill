@@ -18,11 +18,6 @@ Projektet bör fortsätta på nuvarande .NET-spår.
 - **Tester:** xUnit och integrationstester mot databas
 - **Deployment senare:** GitHub Actions + Azure App Service + Azure SQL
 
-### Varför inte Python först
-
-- Nuvarande kodbas är redan byggd på ASP.NET Core, Blazor, Identity och EF Core
-- Ett byte till Python nu skulle öka startkostnaden för Epic #1
-- Python kan fortfarande användas senare för avgränsade batch- eller integrationsflöden, men inte som primär plattform
 
 ## Domänbegrepp
 

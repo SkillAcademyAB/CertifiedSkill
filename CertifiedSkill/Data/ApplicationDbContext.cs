@@ -21,6 +21,16 @@ namespace CertifiedSkill.Data
                 entity.HasIndex(e => e.Email).IsUnique();
                 entity.Property(e => e.DisplayName).HasMaxLength(256).IsRequired();
                 entity.Property(e => e.CreatedAt).IsRequired();
+
+                // PNR fields - nullable, never stored in plaintext
+                entity.Property(e => e.EncryptedPnr).HasMaxLength(512);
+                entity.Property(e => e.PnrKeyVersion).HasMaxLength(64);
+                entity.Property(e => e.PnrHash).HasMaxLength(88);
+
+                // PnrHash is unique when set - prevents duplicates
+                entity.HasIndex(e => e.PnrHash)
+                      .IsUnique()
+                      .HasFilter("[PnrHash] IS NOT NULL");
             });
 
             builder.Entity<Certificate>(entity =>
@@ -48,4 +58,3 @@ namespace CertifiedSkill.Data
         }
     }
 }
-

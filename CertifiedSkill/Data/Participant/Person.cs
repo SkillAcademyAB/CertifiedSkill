@@ -13,6 +13,25 @@ namespace CertifiedSkill.Data.Participant
 
         public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
 
+        /// <summary>
+        /// AES-256-GCM encrypted PNR. Never exposed in logs or UI.
+        /// Null if PNR has not been provided.
+        /// </summary>
+        public string? EncryptedPnr { get; set; }
+
+        /// <summary>
+        /// The key version used to encrypt EncryptedPnr.
+        /// Required when EncryptedPnr is set.
+        /// </summary>
+        public string? PnrKeyVersion { get; set; }
+
+        /// <summary>
+        /// HMAC-SHA256 hash of the normalized PNR.
+        /// Used for deduplication and lookup without exposing plaintext.
+        /// Null if PNR has not been provided.
+        /// </summary>
+        public string? PnrHash { get; set; }
+
         public ICollection<Certificate> Certificates { get; init; } = new List<Certificate>();
     }
 }

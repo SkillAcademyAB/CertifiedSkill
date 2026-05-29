@@ -77,6 +77,8 @@ namespace CertifiedSkill
             builder.Services.AddScoped<IParticipantMagicLinkService, ParticipantMagicLinkService>();
             builder.Services.AddScoped<IParticipantEmailSender, NoOpParticipantEmailSender>();
             builder.Services.AddScoped<ParticipantPersonService>();
+            builder.Services.AddScoped<CertifiedSkill.Services.Pnr.IPnrProtectionService, CertifiedSkill.Services.Pnr.AesPnrProtectionService>();
+            builder.Services.AddScoped<CertifiedSkill.Data.Identity.IPersonalIdentityNumberValidator, CertifiedSkill.Data.Identity.SwedishPersonalIdentityNumberValidator>();
 
             var app = builder.Build();
 

@@ -33,5 +33,7 @@ namespace CertifiedSkill.Data.Participant
         public string? PnrHash { get; set; }
 
         public ICollection<Certificate> Certificates { get; init; } = new List<Certificate>();
+
+        public ICollection<Consent> Consents { get; init; } = new List<Consent>();
     }
 }

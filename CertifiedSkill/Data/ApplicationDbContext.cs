@@ -9,6 +9,7 @@ namespace CertifiedSkill.Data
         public DbSet<Person> Persons => Set<Person>();
         public DbSet<Certificate> Certificates => Set<Certificate>();
         public DbSet<ParticipantMagicLinkToken> ParticipantMagicLinkTokens => Set<ParticipantMagicLinkToken>();
+        public DbSet<Consent> Consents => Set<Consent>();
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -21,13 +22,9 @@ namespace CertifiedSkill.Data
                 entity.HasIndex(e => e.Email).IsUnique();
                 entity.Property(e => e.DisplayName).HasMaxLength(256).IsRequired();
                 entity.Property(e => e.CreatedAt).IsRequired();
-
-                // PNR fields - nullable, never stored in plaintext
                 entity.Property(e => e.EncryptedPnr).HasMaxLength(512);
                 entity.Property(e => e.PnrKeyVersion).HasMaxLength(64);
                 entity.Property(e => e.PnrHash).HasMaxLength(88);
-
-                // PnrHash is unique when set - prevents duplicates
                 entity.HasIndex(e => e.PnrHash)
                       .IsUnique()
                       .HasFilter("[PnrHash] IS NOT NULL");
@@ -54,6 +51,18 @@ namespace CertifiedSkill.Data
                 entity.HasIndex(e => e.TokenHash).IsUnique();
                 entity.Property(e => e.CreatedAt).IsRequired();
                 entity.Property(e => e.ExpiresAt).IsRequired();
+            });
+
+            builder.Entity<Consent>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ConsentType).HasMaxLength(128).IsRequired();
+                entity.Property(e => e.ConsentVersion).HasMaxLength(64).IsRequired();
+                entity.Property(e => e.GrantedAt).IsRequired();
+                entity.HasOne(e => e.Person)
+                    .WithMany(p => p.Consents)
+                    .HasForeignKey(e => e.PersonId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

@@ -10,6 +10,7 @@ namespace CertifiedSkill.Data
         public DbSet<Certificate> Certificates => Set<Certificate>();
         public DbSet<ParticipantMagicLinkToken> ParticipantMagicLinkTokens => Set<ParticipantMagicLinkToken>();
         public DbSet<Consent> Consents => Set<Consent>();
+        public DbSet<ExternalIdentity> ExternalIdentities => Set<ExternalIdentity>();
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -61,6 +62,19 @@ namespace CertifiedSkill.Data
                 entity.Property(e => e.GrantedAt).IsRequired();
                 entity.HasOne(e => e.Person)
                     .WithMany(p => p.Consents)
+                    .HasForeignKey(e => e.PersonId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<ExternalIdentity>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Provider).HasMaxLength(64).IsRequired();
+                entity.Property(e => e.ProviderSubjectId).HasMaxLength(256).IsRequired();
+                entity.Property(e => e.LinkedAt).IsRequired();
+                entity.HasIndex(e => new { e.Provider, e.ProviderSubjectId }).IsUnique();
+                entity.HasOne(e => e.Person)
+                    .WithMany(p => p.ExternalIdentities)
                     .HasForeignKey(e => e.PersonId)
                     .OnDelete(DeleteBehavior.Cascade);
             });

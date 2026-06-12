@@ -35,5 +35,7 @@ namespace CertifiedSkill.Data.Participant
         public ICollection<Certificate> Certificates { get; init; } = new List<Certificate>();
 
         public ICollection<Consent> Consents { get; init; } = new List<Consent>();
+
+        public ICollection<ExternalIdentity> ExternalIdentities { get; init; } = new List<ExternalIdentity>();
     }
 }

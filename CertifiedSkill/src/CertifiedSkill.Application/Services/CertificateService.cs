@@ -1,4 +1,5 @@
 using CertifiedSkill.Domain.Entities;
+using CertifiedSkill.Application.DTOs;
 
 namespace CertifiedSkill.Application.Services;
 
@@ -11,17 +12,11 @@ public class CertificateService
 
     public void RevokeCertificate(Certificate certificate)
     {
-        if (certificate is null)
-            throw new ArgumentNullException(nameof(certificate));
-
         certificate.Revoke();
     }
 
     public CertificateVerificationDto Verify(Certificate certificate)
     {
-        if (certificate is null)
-            throw new ArgumentNullException(nameof(certificate));
-
         return new CertificateVerificationDto
         {
             CertificateId = certificate.Id,

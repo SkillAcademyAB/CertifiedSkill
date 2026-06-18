@@ -13,7 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<Person> Persons => Set<Person>();
     public DbSet<Consent> Consents => Set<Consent>();
     public DbSet<ExternalIdentity> ExternalIdentities => Set<ExternalIdentity>();
-
+    public DbSet<Certificate> Certificates => Set<Certificate>();
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Person>()

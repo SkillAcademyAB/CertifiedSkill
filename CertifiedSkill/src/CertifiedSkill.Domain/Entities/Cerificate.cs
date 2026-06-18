@@ -14,4 +14,13 @@ public class Certificate
     public bool IsRevoked { get; set; } = false;
 
     public DateTime? RevokedAt { get; set; }
+
+    public void Revoke(string reason = null)
+    {
+        if (IsRevoked)
+            return;
+
+        IsRevoked = true;
+        RevokedAt = DateTime.UtcNow;
+    }
 }

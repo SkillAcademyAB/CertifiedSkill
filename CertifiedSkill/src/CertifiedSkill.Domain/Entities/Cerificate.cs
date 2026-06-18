@@ -2,16 +2,30 @@ namespace CertifiedSkill.Domain.Entities;
 
 public class Certificate
 {
-    public Guid Id { get; set; }
+    public Guid Id { get; private set; }
+    public Guid PersonId { get; private set; }
+    public string CourseName { get; private set; } = null!;
+    public DateTime IssuedAt { get; private set; }
 
-    public Guid PersonId { get; set; }
+    public bool IsRevoked { get; private set; }
+    public DateTime? RevokedAt { get; private set; }
 
-    public string CourseName { get; set; } = null!;
+    private Certificate() { } // EF Core
 
-    public DateTime IssuedAt { get; set; } = DateTime.UtcNow;
+    public Certificate(Guid personId, string courseName)
+    {
+        Id = Guid.NewGuid();
+        PersonId = personId;
+        CourseName = courseName;
+        IssuedAt = DateTime.UtcNow;
+        IsRevoked = false;
+    }
 
-    // immutability flag (viktig i din EPIC)
-    public bool IsRevoked { get; set; } = false;
+    public void Revoke()
+    {
+        if (IsRevoked) return;
 
-    public DateTime? RevokedAt { get; set; }
+        IsRevoked = true;
+        RevokedAt = DateTime.UtcNow;
+    }
 }

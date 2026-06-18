@@ -1,28 +1,18 @@
-@page "/"
-@inject CertifiedSkill.Application.Services.PersonService PersonService
+using CertifiedSkill.Application.Services;
 
-<h3>CertifiedSkill</h3>
+var builder = WebApplication.CreateBuilder(args);
 
-<button @onclick="CreateTestPerson">Create Person</button>
+builder.Services.AddScoped<PersonService>();
+builder.Services.AddScoped<CertificateService>();
 
-<p>@result</p>
+var app = builder.Build();
 
-@code {
-    string? result;
-
-private async Task CreateTestPerson()
-{
-    var person = await PersonService.CreatePersonAsync(
-        "encrypted-demo",
-        "hash-demo"
-    );
-
-    result = $"Created Person: {person.Id}";
-}
-}
+app.MapGet("/", () => "CertifiedSkill API running");
 
 app.MapPost("/certificates/issue", (CertificateService service) =>
 {
     var cert = service.IssueCertificate(Guid.NewGuid(), "Clean Architecture 101");
     return Results.Ok(cert);
 });
+
+app.Run();

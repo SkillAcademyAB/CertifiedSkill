@@ -20,6 +20,15 @@ private async Task CreateTestPerson()
     result = $"Created Person: {person.Id}";
 }
 }
+app.MapGet("/certificates/verify/{id}", (Guid id) =>
+{
+    // placeholder (sen kopplar vi DB i nästa steg)
+    return Results.Ok(new
+    {
+        CertificateId = id,
+        Status = "Verified (mock)"
+    });
+});
 
 app.MapPost("/certificates/issue", (CertificateService service) =>
 {
